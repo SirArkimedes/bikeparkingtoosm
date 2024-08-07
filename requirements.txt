@@ -5,3 +5,4 @@ osmapi==4.1.0
 python-dotenv==1.0.1
 requests==2.32.3
 urllib3==2.2.2
+requests-oauth2client==1.5.3
