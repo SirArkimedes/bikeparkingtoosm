@@ -30,11 +30,16 @@ class Point:
   lat: float
   lon: float
   type: ParkingType
+  capacity: int | None
 
-  def __init__(self, lat: float, lon: float, type: ParkingType):
+  def __init__(self, lat: float, lon: float, type: ParkingType, capacity: int | None):
     self.lat = lat
     self.lon = lon
     self.type = type
+    self.capacity = capacity
+
+  def __str__(self):
+    return f"Point: {self.lat}, {self.lon}, {self.type}, {self.capacity}"
 
 def auth_osm() -> osmapi.OsmApi:
   client_id = os.getenv("OSM_CLIENT_ID")
@@ -76,11 +81,20 @@ def auth_osm() -> osmapi.OsmApi:
 
 def setup():
   load_dotenv() 
- 
-  api = auth_osm()
-  print(api.NodeGet(123))
   
   points = read_csv()
+  invalid_points = list(filter(lambda point: point.type == ParkingType.UNKNOWN or (point.capacity is None and point.type != ParkingType.REPAIR_STATION), points))
+  if len(invalid_points) > 0:
+    print("Invalid points found:")
+    for point in invalid_points:
+      print(point)
+    sys.exit(1)
+  else:
+    print("No invalid points found. Moving on!")
+
+  api = auth_osm()
+  # print(api.NodeGet(123))
+  
   print("DONE")
 
 def type_string_to_enum(type_string: str) -> ParkingType:
@@ -135,12 +149,38 @@ def read_csv() -> list[Point]:
             if type_string_to_enum(new_type) != ParkingType.UNKNOWN:
               type_string = new_type
 
+          type = type_string_to_enum(type_string)
+
+          capacity: int | None = None
+          if len(row) == 3:
+            capacity_split = lat_row.split(",")
+            if len(capacity_split) > 2 and capacity_split[2].__contains__("Capacity:"):
+              capacity = int(capacity_split[2].replace("Capacity:", ""))
+          elif len(row) == 4:
+            capacity_row = row[3].split(',')
+            if len(capacity_row) > 1:
+              if capacity_row[1].__contains__("Capacity:"):
+                capacity = int(capacity_row[1].replace("Capacity:", ""))
+              else:
+                capacity = int(capacity_row[1])
+            elif capacity_row[0].isnumeric():
+              capacity = int(capacity_row[0])
+          elif len(row) == 5 and type != ParkingType.REPAIR_STATION:
+            capacity = int(row[4])
+
           last_point = Point(
             float(lat),
             float(lon),
-            type_string_to_enum(type_string)
+            type,
+            capacity,
           )
           all_points.append(last_point)
+
+          if capacity is None:
+            # Capacity isn't on this row, we need to move to the next row to capture it.
+            pass
+        elif last_point is not None and last_point.capacity is None and last_point.type != ParkingType.REPAIR_STATION:
+          last_point.capacity = int(row[1].split(',')[0])
 
     return all_points
 
