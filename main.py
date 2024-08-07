@@ -58,14 +58,14 @@ def auth_osm() -> osmapi.OsmApi:
       code_challenge_method=None,
   )
 
-  # open OSM website to authrorize user using the write_api and write_notes scope
+  # open OSM website to authorize user using the write_api and write_notes scope
   scope = ["write_api", "write_notes"]
   az_request = oauth2client.authorization_request(scope=scope)
   print(f"Authorize user using this URL: {az_request.uri}")
   webbrowser.open(az_request.uri)
 
   # create a new requests session using the OAuth authorization
-  auth_code = input("Paste the authorization code here: ")
+  auth_code = input("Paste the authorization code here: \n")
   auth = OAuth2AuthorizationCodeAuth(
       oauth2client,
       auth_code,
@@ -92,7 +92,7 @@ def setup():
   else:
     print("No invalid points found. Moving on!")
 
-  start_osm(points)
+  create_osm_change_from(points)
   print("DONE")
 
 def data_type_to_osm_type(type: str) -> str:
@@ -126,7 +126,7 @@ def data_type_to_osm_type(type: str) -> str:
     # unclear
     return "stands"
 
-def start_osm(points: list[Point]):
+def create_osm_change_from(points: list[Point]):
   api = auth_osm()
 
   with api.Changeset({"comment": "Just repair stations"}) as changeset_id:
