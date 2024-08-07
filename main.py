@@ -39,7 +39,7 @@ class Point:
     self.capacity = capacity
 
   def __str__(self):
-    return f"Point: {self.lat}, {self.lon}, {self.type}, {self.capacity}"
+    return f"Point: lat - {self.lat}, lon - {self.lon}, type - {self.type}, capacity - {self.capacity}"
 
 def auth_osm() -> osmapi.OsmApi:
   client_id = os.getenv("OSM_CLIENT_ID")
@@ -92,10 +92,74 @@ def setup():
   else:
     print("No invalid points found. Moving on!")
 
-  api = auth_osm()
-  # print(api.NodeGet(123))
-  
+  start_osm(points)
   print("DONE")
+
+def data_type_to_osm_type(type: str) -> str:
+  # Refer to https://wiki.openstreetmap.org/wiki/Key:bicycle_parking
+  if type == ParkingType.SCHOOL_YARD:
+    # unclear
+    return "rack"
+  elif type == ParkingType.BOLLARD:
+    return "bollard"
+  elif type == ParkingType.COAT_HANGER:
+    return "rack"
+  elif type == ParkingType.INVERTED_U:
+    return "stands"
+  elif type == ParkingType.WAVE:
+    return "stands"
+  elif type == ParkingType.BIKE_LOCKER:
+    return "lockers"
+  elif type == ParkingType.HORNED:
+    # unclear
+    return "stands"
+  elif type == ParkingType.SPIRAL:
+    # unclear
+    return "rack"
+  elif type == ParkingType.WHEEL_WELL:
+    return "wall_loops"
+  elif type == ParkingType.REPAIR_STATION:
+    return "repair_station"
+  elif type == ParkingType.VERTICAL:
+    return "upright_stands"
+  elif type == ParkingType.SPECIAL:
+    # unclear
+    return "stands"
+
+def start_osm(points: list[Point]):
+  api = auth_osm()
+
+  with api.Changeset({"comment": "Just repair stations"}) as changeset_id:
+    print(f"Part of Changeset {changeset_id}")
+    for i, point in enumerate(points):
+      print(f"Processing repair station ({i+1} / {len(points)}): ", point)
+      if point.type == ParkingType.REPAIR_STATION:
+        print("Creating repair station")
+        api.NodeCreate(
+          {
+            "lat": point.lat,
+            "lon": point.lon,
+            "tag": {
+              "amenity": "bicycle_repair_station",
+              "service:bicycle:pump": "yes",
+              "fee": "no",
+            },
+          }
+        )
+      else:
+        api.NodeCreate(
+          {
+            "lat": point.lat,
+            "lon": point.lon,
+            "tag": {
+              "amenity": "bicycle_parking",
+              "capacity": f"{point.capacity}",
+              "bicycle_parking": data_type_to_osm_type(point.type),
+              "fee": "no",
+            },
+          }
+        )
+
 
 def type_string_to_enum(type_string: str) -> ParkingType:
   if type_string == "Schoolyard":
