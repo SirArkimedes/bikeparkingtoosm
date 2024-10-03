@@ -223,7 +223,6 @@ def create_osm_change_from(points: list[Point]):
   print("Creating changeset")
   with api.Changeset({
     "comment": "Add Lakewood Bike Parking",
-    "imported_with": "https://github.com/SirArkimedes/bikeparkingtoosm",
     "source": "2024 Lakewood Bike Parking Task Force Collected Data",
     "more_info": "https://www.lakewoodtogether.org/bikeplanupdate",
   }) as changeset_id:
