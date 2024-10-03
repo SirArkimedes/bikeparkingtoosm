@@ -251,7 +251,7 @@ def create_osm_change_from(points: list[Point]):
               "amenity": "bicycle_parking",
               "capacity": f"{point.capacity}",
               "bicycle_parking": data_type_to_osm_type(point.type),
-              "fee": "no",
+              "fee": "yes" if point.obstruction == Obstruction.PAYMENT_REQUIRED else "no",
             },
           }
         )
