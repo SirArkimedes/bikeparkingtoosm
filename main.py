@@ -156,7 +156,7 @@ def data_type_to_osm_type(type: str) -> str:
 
 def create_osm_change_from(points: list[Point]):
   print("Authorizing OSM API")
-  # api = auth_osm()
+  api = auth_osm()
 
   def exclusion(point: Point) -> bool:
     return (
