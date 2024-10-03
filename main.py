@@ -156,14 +156,67 @@ def data_type_to_osm_type(type: str) -> str:
 
 def create_osm_change_from(points: list[Point]):
   print("Authorizing OSM API")
-  api = auth_osm()
+  # api = auth_osm()
 
   def exclusion(point: Point) -> bool:
     return (
-      (point.lat == 39.7331874 and point.lon == -105.1558478)
-      or (point.lat == 39.7310746 and point.lon == -105.158065)
+      # Colorado Mills
+      (point.lat == 39.7331874 and point.lon == -105.1558478) #1
+      or (point.lat == 39.7310746 and point.lon == -105.158065) #2
+      or (point.lat == 39.7364441 and point.lon == -105.1611804) #3
+
+      # Office park North of Colorado Mills
+      or (point.lat == 39.7445533 and point.lon == -105.1544491) #4
+      or (point.lat == 39.7440516 and point.lon == -105.1557097) #5
+
+      # RTD Federal Center Station
+      or (point.lat == 39.719571 and point.lon == -105.1298687) #6
+      or (point.lat == 39.7195685 and point.lon == -105.128261) #7
+
+      # RTD Wadsworth Station
+      or (point.lat == 39.7366641 and point.lon == -105.0808718) #8
+      or (point.lat == 39.7367347 and point.lon == -105.0808295) #9
+      or (point.lat == 39.7367715 and point.lon == -105.0807402) #10
+      or (point.lat == 39.7366012 and point.lon == -105.0817873) #11
+
+      # Molholm Elementary School
+      or (point.lat == 39.7314568 and point.lon == -105.0636275) #12
+
+      # Creighton Middle School
+      # 39.7167643 / -105.1062501 -- Go remove this one from OSM. Our data is better.
+
+      # Gold Crown Field House
+      or (point.lat == 39.7138648 and point.lon == -105.062346) #13
+
+      # Glennon Heights Elementary School
+      # 39.7063184 / -105.1226699 -- Go remove this one from OSM. Our data is better.
+
+      # Lakewood City Commons
+      or (point.lat == 39.7081803 and point.lon == -105.0854128) #14
+      or (point.lat == 39.7080601 and point.lon == -105.0852599) #15
+      or (point.lat == 39.7082932 and point.lon == -105.084945) #16
+      or (point.lat == 39.706733 and point.lon == -105.0839718) #17
+
+      # Belmar
+      or (point.lat == 39.7080051 and point.lon == -105.0767886) #18
+
+      # Deane Elementary School
+      # 39.706048 / -105.0625555, 39.7060477 / -105.0625308 -- Go remove these from OSM. Our data is better.
+
+      # Alameda High School
+      or (point.lat == 39.6938518 and point.lon == -105.0850199) #19
+
+      # Carmody Recreation Center
+      # 39.6776681 / -105.1092229, 39.677625 / -105.1092238 -- Go remove these from OSM. Our data is better.
+
+      # Bear Creek High School
+      or (point.lat == 39.6594614 and point.lon == -105.1100416) #20
+      or (point.lat == 39.657092 and point.lon == -105.11043) #21
+
+      # Whole Foods near Littleton
+      or (point.lat == 39.6234228 and point.lon == -105.0920043) #22
+      # Delete one of the ones on this location. Repair station is not labeled correctly.
     )
-    # Add more
 
   points_without_excluded = list(filter(lambda point: not exclusion(point), points))
   
