@@ -221,7 +221,11 @@ def create_osm_change_from(points: list[Point]):
   points_without_excluded = list(filter(lambda point: not exclusion(point), points))
   
   print("Creating changeset")
-  with api.Changeset({"comment": "Lakewood Bike Parking"}) as changeset_id:
+  with api.Changeset({
+    "comment": "Add Lakewood Bike Parking",
+    "imported_with": "https://github.com/SirArkimedes/bikeparkingtoosm",
+    "source": "2024 Lakewood Bike Parking Task Force Collected Data",
+  }) as changeset_id:
     print(f"Part of Changeset {changeset_id}")
     for i, point in enumerate(points_without_excluded):
       print(f"Processing point ({i+1} / {len(points_without_excluded)}): ", point)
