@@ -25,18 +25,40 @@ class ParkingType:
 
   UNKNOWN = "Unknown"
 
+class Obstruction:
+  NONE = "None"
+  LOW = "Low"
+  MEDIUM = "Medium"
+  HIGH = "High"
+  PAYMENT_REQUIRED = "Payment Required"
+
 
 class Point:
   lat: float
   lon: float
   type: ParkingType
   capacity: int | None
+  obstruction: Obstruction | None
+  within_plain_sight: bool | None
+  within_view_of_entrance: bool | None
 
-  def __init__(self, lat: float, lon: float, type: ParkingType, capacity: int | None):
+  def __init__(
+      self,
+      lat: float,
+      lon: float,
+      type: ParkingType,
+      capacity: int | None,
+      obstruction: Obstruction | None,
+      within_plain_sight: bool | None,
+      within_view_of_entrance: bool | None,
+    ):
     self.lat = lat
     self.lon = lon
     self.type = type
     self.capacity = capacity
+    self.obstruction = obstruction
+    self.within_plain_sight = within_plain_sight
+    self.within_view_of_entrance = within_view_of_entrance
 
   def __str__(self):
     return f"Point: lat - {self.lat}, lon - {self.lon}, type - {self.type}, capacity - {self.capacity}"
@@ -92,8 +114,14 @@ def setup():
   else:
     print("No invalid points found. Moving on!")
 
+  print("Total points parsed: ", len(points))
+
   create_osm_change_from(points)
   print("DONE")
+
+  print("Denver Metro: https://overpass-turbo.eu/s/1S6B")
+  print("Lakewood: https://overpass-turbo.eu/s/1LWR")
+
 
 def data_type_to_osm_type(type: str) -> str:
   # Refer to https://wiki.openstreetmap.org/wiki/Key:bicycle_parking
@@ -127,12 +155,23 @@ def data_type_to_osm_type(type: str) -> str:
     return "stands"
 
 def create_osm_change_from(points: list[Point]):
+  print("Authorizing OSM API")
   api = auth_osm()
 
-  with api.Changeset({"comment": "Just repair stations"}) as changeset_id:
+  def exclusion(point: Point) -> bool:
+    return (
+      (point.lat == 39.7331874 and point.lon == -105.1558478)
+      or (point.lat == 39.7310746 and point.lon == -105.158065)
+    )
+    # Add more
+
+  points_without_excluded = list(filter(lambda point: not exclusion(point), points))
+  
+  print("Creating changeset")
+  with api.Changeset({"comment": "Lakewood Bike Parking"}) as changeset_id:
     print(f"Part of Changeset {changeset_id}")
-    for i, point in enumerate(points):
-      print(f"Processing repair station ({i+1} / {len(points)}): ", point)
+    for i, point in enumerate(points_without_excluded):
+      print(f"Processing point ({i+1} / {len(points_without_excluded)}): ", point)
       if point.type == ParkingType.REPAIR_STATION:
         print("Creating repair station")
         api.NodeCreate(
@@ -188,63 +227,39 @@ def type_string_to_enum(type_string: str) -> ParkingType:
     return ParkingType.SPECIAL
   else:
     return ParkingType.UNKNOWN
+  
+def obstruction_string_to_enum(obstruction_string: str) -> Obstruction:
+  if obstruction_string == "none":
+    return Obstruction.NONE
+  elif obstruction_string == "low":
+    return Obstruction.LOW
+  elif obstruction_string == "medium":
+    return Obstruction.MEDIUM
+  elif obstruction_string == "high":
+    return Obstruction.HIGH
+  elif obstruction_string == "payment required":
+    return Obstruction.PAYMENT_REQUIRED
+  else:
+    return Obstruction.NONE
 
 def read_csv() -> list[Point]:
+  print("Processing CSV")
   all_points = []
   with open('data/points.csv', newline='\n') as file:
-    reader = csv.reader(file, delimiter=' ', quotechar='|')
+    reader = csv.reader(file, delimiter=',', quotechar='|')
 
-    last_point = None
     for row in reader:
-        if len(row) > 0 and row[0] == '\"POINT':
-          lon_row = row[1]
-          lat_row = row[2]
-          lat = lat_row.split(')')[0]
-          lon = lon_row.split('(')[1]
-          type_string = lat_row.split(',')[1]
+      lon = float(row[0])
+      lat = float(row[1])
+      type = type_string_to_enum(row[2])
+      if type != ParkingType.REPAIR_STATION:
+        capacity = None if row[3] is None else int(row[3])
+        obstruction = obstruction_string_to_enum(row[4].lower())
+        within_plain_sight = None if row[5] is None else row[5] == "1"
+        within_view_of_entrance = None if row[6] is None else row[6] == "1"
 
-          # Rows that have a space in their type (e.g. "Inverted U") have an extra array element.
-          # So we need to append the first part of that next element to the type string.
-          if len(row) > 4:
-            type_string += " " + row[3].split(',')[0]
-          # Special case for a Bike Locker one.
-          elif len(row) == 4 and (type_string == "Inverted" or type_string == "Bike"):
-            new_type = type_string + " " + row[3].split(',')[0]
-            if type_string_to_enum(new_type) != ParkingType.UNKNOWN:
-              type_string = new_type
-
-          type = type_string_to_enum(type_string)
-
-          capacity: int | None = None
-          if len(row) == 3:
-            capacity_split = lat_row.split(",")
-            if len(capacity_split) > 2 and capacity_split[2].__contains__("Capacity:"):
-              capacity = int(capacity_split[2].replace("Capacity:", ""))
-          elif len(row) == 4:
-            capacity_row = row[3].split(',')
-            if len(capacity_row) > 1:
-              if capacity_row[1].__contains__("Capacity:"):
-                capacity = int(capacity_row[1].replace("Capacity:", ""))
-              else:
-                capacity = int(capacity_row[1])
-            elif capacity_row[0].isnumeric():
-              capacity = int(capacity_row[0])
-          elif len(row) == 5 and type != ParkingType.REPAIR_STATION:
-            capacity = int(row[4])
-
-          last_point = Point(
-            float(lat),
-            float(lon),
-            type,
-            capacity,
-          )
-          all_points.append(last_point)
-
-          if capacity is None:
-            # Capacity isn't on this row, we need to move to the next row to capture it.
-            pass
-        elif last_point is not None and last_point.capacity is None and last_point.type != ParkingType.REPAIR_STATION:
-          last_point.capacity = int(row[1].split(',')[0])
+      point = Point(lat, lon, type, capacity, obstruction, within_plain_sight, within_view_of_entrance)
+      all_points.append(point)
 
     return all_points
 
