@@ -215,7 +215,7 @@ def create_osm_change_from(points: list[Point]):
 
       # Whole Foods near Littleton
       or (point.lat == 39.6234228 and point.lon == -105.0920043) #22
-      # Delete one of the ones on this location. Repair station is not labeled correctly.
+      or (point.lat == 39.6233875 and point.lon == -105.0919897) #23
     )
 
   points_without_excluded = list(filter(lambda point: not exclusion(point), points))
