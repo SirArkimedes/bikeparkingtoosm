@@ -225,12 +225,12 @@ def create_osm_change_from(points: list[Point]):
     "comment": "Add Lakewood Bike Parking",
     "imported_with": "https://github.com/SirArkimedes/bikeparkingtoosm",
     "source": "2024 Lakewood Bike Parking Task Force Collected Data",
+    "more_info": "https://www.lakewoodtogether.org/bikeplanupdate",
   }) as changeset_id:
     print(f"Part of Changeset {changeset_id}")
     for i, point in enumerate(points_without_excluded):
       print(f"Processing point ({i+1} / {len(points_without_excluded)}): ", point)
       if point.type == ParkingType.REPAIR_STATION:
-        print("Creating repair station")
         api.NodeCreate(
           {
             "lat": point.lat,
